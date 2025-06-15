@@ -28,6 +28,17 @@ tilemap = [
 ] + [[0]*20 for _ in range(10)]  # pad the rest with 0s
 
 
+# --- Memory Objects ---
+memories = [
+    {"pos": (5, 2), "message": "You remember the warmth of a childhood friend."},
+    {"pos": (12, 4), "message": "A moment of quiet under the sky."},
+    {"pos": (17, 6), "message": "That rainy evening you felt truly alive."},
+]
+
+active_message = None
+
+
+
 # --- Player Position ---
 player_x = WIDTH // 2
 player_y = HEIGHT // 2
@@ -42,6 +53,26 @@ def get_tile(tile_index):
     x = (tile_index % tiles_per_row) * TILE_SIZE
     y = (tile_index // tiles_per_row) * TILE_SIZE
     return tileset.subsurface((x, y, TILE_SIZE, TILE_SIZE))
+
+def draw_message_box(text):
+    font = pygame.font.SysFont("arial", 16)
+    padding = 10
+    box_width = 400
+    box_height = 80
+    box_x = (WIDTH - box_width) // 2
+    box_y = HEIGHT - box_height - 20
+
+    # Draw semi-transparent background
+    box_rect = pygame.Rect(box_x, box_y, box_width, box_height)
+    pygame.draw.rect(WIN, (30, 30, 30), box_rect)
+    pygame.draw.rect(WIN, (200, 200, 200), box_rect, 2)
+
+    # Draw text
+    rendered = font.render(text, True, (255, 255, 255))
+    WIN.blit(rendered, (box_x + padding, box_y + padding))
+
+    if active_message:
+        draw_message_box(active_message)
 
 
 # --- Game Loop ---
@@ -65,6 +96,18 @@ while running:
         player_y -= speed
     if keys[pygame.K_DOWN] or keys[pygame.K_s]:
         player_y += speed
+
+        # --- Check for Memory Interaction ---
+    player_tile_x = player_x // TILE_SIZE
+    player_tile_y = player_y // TILE_SIZE
+
+    active_message = None  # Reset message
+    for memory in memories:
+        mem_x, mem_y = memory["pos"]
+        if player_tile_x == mem_x and player_tile_y == mem_y:
+            active_message = memory["message"]
+            break
+    
 
     # --- Draw Everything ---
     WIN.fill((0, 0, 0))  # Clear screen

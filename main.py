@@ -18,15 +18,14 @@ player_img = pygame.transform.scale(player_img, (32, 32))
 
 tileset = pygame.image.load("assets/tileset.png")
 
-# --- Sample Tilemap (each number = tile index from tileset) ---
+# --- Sample Tilemap ---
 tilemap = [
     [0, 0, 1, 1, 2, 2, 1, 0, 0, 3, 3, 1, 0, 0, 2, 1, 1, 0, 0, 0],
     [0, 1, 2, 2, 3, 3, 2, 1, 1, 2, 2, 1, 0, 1, 2, 2, 1, 0, 0, 0],
     [1, 2, 3, 3, 3, 3, 3, 2, 2, 3, 3, 2, 1, 2, 3, 3, 2, 1, 0, 0],
     [1, 2, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3, 1, 1, 3, 1, 1, 0],
     [0, 1, 2, 3, 3, 3, 2, 2, 2, 2, 2, 2, 0, 2, 3, 3, 2, 0, 0, 0],
-] + [[0]*20 for _ in range(10)]  # pad the rest with 0s
-
+] + [[0]*20 for _ in range(10)]  # fill rest of screen
 
 # --- Memory Objects ---
 memories = [
@@ -37,8 +36,6 @@ memories = [
 
 active_message = None
 
-
-
 # --- Player Position ---
 player_x = WIDTH // 2
 player_y = HEIGHT // 2
@@ -48,8 +45,7 @@ def get_tile(tile_index):
     tiles_per_row = tileset.get_width() // TILE_SIZE
     total_tiles = (tileset.get_width() // TILE_SIZE) * (tileset.get_height() // TILE_SIZE)
     if tile_index >= total_tiles:
-        print(f"Tile index {tile_index} is out of range! Max: {total_tiles - 1}")
-        tile_index = 0  # fallback to default tile
+        tile_index = 0
     x = (tile_index % tiles_per_row) * TILE_SIZE
     y = (tile_index // tiles_per_row) * TILE_SIZE
     return tileset.subsurface((x, y, TILE_SIZE, TILE_SIZE))
@@ -62,18 +58,12 @@ def draw_message_box(text):
     box_x = (WIDTH - box_width) // 2
     box_y = HEIGHT - box_height - 20
 
-    # Draw semi-transparent background
     box_rect = pygame.Rect(box_x, box_y, box_width, box_height)
     pygame.draw.rect(WIN, (30, 30, 30), box_rect)
     pygame.draw.rect(WIN, (200, 200, 200), box_rect, 2)
 
-    # Draw text
     rendered = font.render(text, True, (255, 255, 255))
     WIN.blit(rendered, (box_x + padding, box_y + padding))
-
-    if active_message:
-        draw_message_box(active_message)
-
 
 # --- Game Loop ---
 clock = pygame.time.Clock()
@@ -81,12 +71,11 @@ running = True
 while running:
     clock.tick(FPS)
 
-    # Event Handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    # Movement Input
+    # Movement
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         player_x -= speed
@@ -97,20 +86,22 @@ while running:
     if keys[pygame.K_DOWN] or keys[pygame.K_s]:
         player_y += speed
 
-        # --- Check for Memory Interaction ---
+    # Keep player on screen
+    player_x = max(0, min(WIDTH - TILE_SIZE, player_x))
+    player_y = max(0, min(HEIGHT - TILE_SIZE, player_y))
+
+    # Check for memory interaction
     player_tile_x = player_x // TILE_SIZE
     player_tile_y = player_y // TILE_SIZE
-
-    active_message = None  # Reset message
+    active_message = None
     for memory in memories:
         mem_x, mem_y = memory["pos"]
         if player_tile_x == mem_x and player_tile_y == mem_y:
             active_message = memory["message"]
             break
-    
 
-    # --- Draw Everything ---
-    WIN.fill((0, 0, 0))  # Clear screen
+    # --- Drawing ---
+    WIN.fill((0, 0, 0))
 
     # Draw tilemap
     for row_index, row in enumerate(tilemap):
@@ -120,6 +111,10 @@ while running:
 
     # Draw player
     WIN.blit(player_img, (player_x, player_y))
+
+    # Draw memory message
+    if active_message:
+        draw_message_box(active_message)
 
     pygame.display.update()
 
